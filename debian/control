@@ -14,8 +14,9 @@ Build-Depends: debhelper-compat (= 13),
  librust-num-traits-0.2+default-dev (>= 0.2.16-~~) <!nocheck>,
  librust-pyo3-0.22+num-bigint-dev <!nocheck>,
  librust-smallvec-1+default-dev (>= 1.11.0-~~) <!nocheck>
-Maintainer: Debian Rust Maintainers <pkg-rust-maintainers@alioth-lists.debian.net>
-Uploaders:
+Maintainer: Pexip AS <packaging@pexip.com>
+XSBC-Pexip-Original-Maintainer: Debian Rust Maintainers <pkg-rust-maintainers@alioth-lists.debian.net>
+XSBC-Pexip-Original-Uploaders:
  Colin Watson <cjwatson@debian.org>
 Standards-Version: 4.7.0
 Vcs-Git: https://salsa.debian.org/rust-team/debcargo-conf.git [src/jiter]
@@ -23,6 +24,7 @@ Vcs-Browser: https://salsa.debian.org/rust-team/debcargo-conf/tree/master/src/ji
 Homepage: https://github.com/pydantic/jiter/
 X-Cargo-Crate: jiter
 Rules-Requires-Root: no
+XS-Pexip-Upstream: http://deb.debian.org/debian/ trixie
 
 Package: librust-jiter-dev
 Architecture: any
