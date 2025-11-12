@@ -1,0 +1,11 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -71,7 +71,7 @@
+ version = "1.0.1"
+ 
+ [dependencies.lexical-parse-float]
+-version = "1.0.5"
++version = "0.8.5"
+ features = ["format"]
+ 
+ [dependencies.num-bigint]
