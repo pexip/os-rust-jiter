@@ -10,6 +10,7 @@ keywords = { workspace = true }
 categories = { workspace = true }
 homepage = { workspace = true }
 repository = { workspace = true }
+rust-version = { workspace = true }
 
 [dependencies]
 num-bigint = { version = "0.4.4", optional = true }
@@ -17,7 +18,7 @@ num-traits = "0.2.16"
 ahash = "0.8.0"
 smallvec = "1.11.0"
 pyo3 = { workspace = true, optional = true }
-lexical-parse-float = { version = "0.8.5", features = ["format"] }
+lexical-parse-float = { version = "1.0.5", features = ["format"] }
 bitvec = "1.0.1"
 
 [features]
@@ -26,7 +27,6 @@ python = ["dep:pyo3", "dep:pyo3-build-config"]
 num-bigint = ["dep:num-bigint", "pyo3?/num-bigint"]
 
 [dev-dependencies]
-bencher = "0.1.5"
 paste = "1.0.7"
 serde_json = { version = "1.0.87", features = [
     "preserve_order",
@@ -35,7 +35,7 @@ serde_json = { version = "1.0.87", features = [
 ] }
 serde = "1.0.147"
 pyo3 = { workspace = true, features = ["auto-initialize"] }
-codspeed-bencher-compat = "2.7.1"
+codspeed-criterion-compat = "2.7.2"
 
 [build-dependencies]
 pyo3-build-config = { workspace = true, optional = true }

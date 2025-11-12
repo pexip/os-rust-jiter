@@ -9,13 +9,13 @@ Fast iterable JSON parser.
 Documentation is available at [docs.rs/jiter](https://docs.rs/jiter).
 
 jiter has three interfaces:
-* [`JsonValue`] an enum representing JSON data
-* [`Jiter`] an iterator over JSON data
-* [`PythonParse`] which parses a JSON string into a Python object
+* `JsonValue` an enum representing JSON data
+* `Jiter` an iterator over JSON data
+* `PythonParse` which parses a JSON string into a Python object
 
 ## JsonValue Example
 
-See [the `JsonValue` docs][JsonValue] for more details.
+See [the `JsonValue` docs](https://docs.rs/jiter/latest/jiter/enum.JsonValue.html) for more details.
 
 ```rust
 use jiter::JsonValue;
@@ -31,7 +31,6 @@ let json_data = r#"
     }"#;
 let json_value = JsonValue::parse(json_data.as_bytes(), true).unwrap();
 println!("{:#?}", json_value);
-
 ```
 
 returns:
@@ -53,7 +52,7 @@ Object(
 
 ## Jiter Example
 
-To use [Jiter], you need to know what schema you're expecting:
+To use [Jiter](https://docs.rs/jiter/latest/jiter/struct.Jiter.html), you need to know what schema you're expecting:
 
 ```rust
 use jiter::{Jiter, NumberInt, Peek};
@@ -67,7 +66,7 @@ let json_data = r#"
             "+44 2345678"
         ]
     }"#;
-let mut jiter = Jiter::new(json_data.as_bytes()).with_allow_inf_nan();
+let mut jiter = Jiter::new(json_data.as_bytes());
 assert_eq!(jiter.next_object().unwrap(), Some("name"));
 assert_eq!(jiter.next_str().unwrap(), "John Doe");
 assert_eq!(jiter.next_key().unwrap(), Some("age"));
@@ -94,7 +93,7 @@ _There are lies, damned lies and benchmarks._
 In particular, serde-json benchmarks use `serde_json::Value` which is significantly slower than deserializing
 to a string.
 
-For more details, see [the benchmarks](https://github.com/pydantic/jiter/tree/main/benches).
+For more details, see [the benchmarks](https://github.com/pydantic/jiter/tree/main/crates/jiter/benches).
 
 ```text
 running 48 tests
