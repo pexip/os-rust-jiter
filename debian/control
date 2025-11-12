@@ -24,7 +24,7 @@ Vcs-Browser: https://salsa.debian.org/rust-team/debcargo-conf/tree/master/src/ji
 Homepage: https://github.com/pydantic/jiter/
 X-Cargo-Crate: jiter
 Rules-Requires-Root: no
-XS-Pexip-Upstream: http://deb.debian.org/debian/ trixie
+XS-Pexip-Upstream: http://deb.debian.org/debian/ forky
 
 Package: librust-jiter-dev
 Architecture: any
