@@ -1,3 +1,30 @@
+rust-jiter (0.11.1-1) unstable; urgency=medium
+
+  * Package jiter 0.11.1 from crates.io using debcargo 2.7.11
+
+ -- Colin Watson <cjwatson@debian.org>  Sat, 18 Oct 2025 22:19:57 +0100
+
+rust-jiter (0.11.0-1) unstable; urgency=medium
+
+  * Package jiter 0.11.0 from crates.io using debcargo 2.7.11
+
+ -- Colin Watson <cjwatson@debian.org>  Fri, 17 Oct 2025 11:28:07 +0100
+
+rust-jiter (0.10.0-2) unstable; urgency=medium
+
+  * Package jiter 0.10.0 from crates.io using debcargo 2.7.11
+  * Accept pyo3 0.26.
+
+ -- Colin Watson <cjwatson@debian.org>  Sun, 12 Oct 2025 21:07:53 +0100
+
+rust-jiter (0.10.0-1) unstable; urgency=medium
+
+  * Team upload.
+  * Package jiter 0.10.0 from crates.io using debcargo 2.7.8
+  * Drop num-bigint-tests.patch, merged upstream.
+
+ -- Peter Michael Green <plugwash@debian.org>  Tue, 19 Aug 2025 16:10:57 +0000
+
 rust-jiter (0.7.1-1+pexip25u1) pexip-trixie; urgency=medium
 
   * Prepare Pexip packaging

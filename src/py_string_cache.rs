@@ -1,10 +1,11 @@
-use std::cell::RefCell;
+use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use ahash::random_state::RandomState;
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::sync::{GILOnceCell, GILProtected};
 use pyo3::types::{PyBool, PyString};
+
+use crate::string_decoder::StringOutput;
 
 #[derive(Debug, Clone, Copy)]
 pub enum StringCacheMode {
@@ -21,7 +22,7 @@ impl Default for StringCacheMode {
 
 impl<'py> FromPyObject<'py> for StringCacheMode {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<StringCacheMode> {
-        if let Ok(bool_mode) = ob.downcast::<PyBool>() {
+        if let Ok(bool_mode) = ob.cast::<PyBool>() {
             Ok(bool_mode.is_true().into())
         } else if let Ok(str_mode) = ob.extract::<&str>() {
             match str_mode {
@@ -51,65 +52,93 @@ impl From<bool> for StringCacheMode {
 }
 
 pub trait StringMaybeCache {
-    fn get_key<'py>(py: Python<'py>, json_str: &str, ascii_only: bool) -> Bound<'py, PyString>;
+    fn get_key<'py>(py: Python<'py>, string_output: StringOutput<'_, '_>) -> Bound<'py, PyString>;
 
-    fn get_value<'py>(py: Python<'py>, json_str: &str, ascii_only: bool) -> Bound<'py, PyString> {
-        Self::get_key(py, json_str, ascii_only)
+    fn get_value<'py>(py: Python<'py>, string_output: StringOutput<'_, '_>) -> Bound<'py, PyString> {
+        Self::get_key(py, string_output)
     }
 }
 
 pub struct StringCacheAll;
 
 impl StringMaybeCache for StringCacheAll {
-    fn get_key<'py>(py: Python<'py>, json_str: &str, ascii_only: bool) -> Bound<'py, PyString> {
-        cached_py_string(py, json_str, ascii_only)
+    fn get_key<'py>(py: Python<'py>, string_output: StringOutput<'_, '_>) -> Bound<'py, PyString> {
+        // Safety: string_output carries the safety information
+        unsafe { cached_py_string_maybe_ascii(py, string_output.as_str(), string_output.ascii_only()) }
     }
 }
 
 pub struct StringCacheKeys;
 
 impl StringMaybeCache for StringCacheKeys {
-    fn get_key<'py>(py: Python<'py>, json_str: &str, ascii_only: bool) -> Bound<'py, PyString> {
-        cached_py_string(py, json_str, ascii_only)
+    fn get_key<'py>(py: Python<'py>, string_output: StringOutput<'_, '_>) -> Bound<'py, PyString> {
+        // Safety: string_output carries the safety information
+        unsafe { cached_py_string_maybe_ascii(py, string_output.as_str(), string_output.ascii_only()) }
     }
 
-    fn get_value<'py>(py: Python<'py>, json_str: &str, ascii_only: bool) -> Bound<'py, PyString> {
-        pystring_fast_new(py, json_str, ascii_only)
+    fn get_value<'py>(py: Python<'py>, string_output: StringOutput<'_, '_>) -> Bound<'py, PyString> {
+        unsafe { pystring_fast_new_maybe_ascii(py, string_output.as_str(), string_output.ascii_only()) }
     }
 }
 
 pub struct StringNoCache;
 
 impl StringMaybeCache for StringNoCache {
-    fn get_key<'py>(py: Python<'py>, json_str: &str, ascii_only: bool) -> Bound<'py, PyString> {
-        pystring_fast_new(py, json_str, ascii_only)
+    fn get_key<'py>(py: Python<'py>, string_output: StringOutput<'_, '_>) -> Bound<'py, PyString> {
+        unsafe { pystring_fast_new_maybe_ascii(py, string_output.as_str(), string_output.ascii_only()) }
     }
 }
 
-static STRING_CACHE: GILOnceCell<GILProtected<RefCell<PyStringCache>>> = GILOnceCell::new();
+static STRING_CACHE: OnceLock<Mutex<PyStringCache>> = OnceLock::new();
 
-macro_rules! get_string_cache {
-    ($py:ident) => {
-        STRING_CACHE
-            .get_or_init($py, || GILProtected::new(RefCell::new(PyStringCache::default())))
-            .get($py)
-    };
+#[inline]
+fn get_string_cache() -> MutexGuard<'static, PyStringCache> {
+    match STRING_CACHE.get_or_init(|| Mutex::new(PyStringCache::default())).lock() {
+        Ok(cache) => cache,
+        Err(poisoned) => {
+            let mut cache = poisoned.into_inner();
+            // worst case if we panic while the cache is held, we just clear and keep going
+            cache.clear();
+            cache
+        }
+    }
 }
 
-pub fn cache_usage(py: Python) -> usize {
-    get_string_cache!(py).borrow().usage()
+pub fn cache_usage() -> usize {
+    get_string_cache().usage()
 }
 
-pub fn cache_clear(py: Python) {
-    get_string_cache!(py).borrow_mut().clear();
+pub fn cache_clear() {
+    get_string_cache().clear();
 }
 
-pub fn cached_py_string<'py>(py: Python<'py>, s: &str, ascii_only: bool) -> Bound<'py, PyString> {
+/// Create a cached Python `str` from a string slice
+#[inline]
+pub fn cached_py_string<'py>(py: Python<'py>, s: &str) -> Bound<'py, PyString> {
+    // SAFETY: not setting ascii-only
+    unsafe { cached_py_string_maybe_ascii(py, s, false) }
+}
+
+/// Create a cached Python `str` from a string slice.
+///
+/// # Safety
+///
+/// Caller must pass ascii-only string.
+#[inline]
+pub unsafe fn cached_py_string_ascii<'py>(py: Python<'py>, s: &str) -> Bound<'py, PyString> {
+    // SAFETY: caller upholds invariant
+    unsafe { cached_py_string_maybe_ascii(py, s, true) }
+}
+
+/// # Safety
+///
+/// Caller must match the ascii_only flag to the string passed in.
+unsafe fn cached_py_string_maybe_ascii<'py>(py: Python<'py>, s: &str, ascii_only: bool) -> Bound<'py, PyString> {
     // from tests, 0 and 1 character strings are faster not cached
     if (2..64).contains(&s.len()) {
-        get_string_cache!(py).borrow_mut().get_or_insert(py, s, ascii_only)
+        get_string_cache().get_or_insert(py, s, ascii_only)
     } else {
-        pystring_fast_new(py, s, ascii_only)
+        pystring_fast_new_maybe_ascii(py, s, ascii_only)
     }
 }
 
@@ -132,6 +161,7 @@ const ARRAY_REPEAT_VALUE: Entry = None;
 impl Default for PyStringCache {
     fn default() -> Self {
         Self {
+            #[allow(clippy::large_stack_arrays)]
             entries: Box::new([ARRAY_REPEAT_VALUE; CAPACITY]),
             hash_builder: RandomState::default(),
         }
@@ -141,25 +171,34 @@ impl Default for PyStringCache {
 impl PyStringCache {
     /// Lookup the cache for an entry with the given string. If it exists, return it.
     /// If it is not set or has a different string, insert it and return it.
-    fn get_or_insert<'py>(&mut self, py: Python<'py>, s: &str, ascii_only: bool) -> Bound<'py, PyString> {
+    ///
+    /// # Safety
+    ///
+    /// `ascii_only` must only be set to `true` if the string is guaranteed to be ASCII only.
+    unsafe fn get_or_insert<'py>(&mut self, py: Python<'py>, s: &str, ascii_only: bool) -> Bound<'py, PyString> {
         let hash = self.hash_builder.hash_one(s);
 
         let hash_index = hash as usize % CAPACITY;
 
         let set_entry = |entry: &mut Entry| {
-            let py_str = pystring_fast_new(py, s, ascii_only);
-            *entry = Some((hash, py_str.to_owned().unbind()));
+            // SAFETY: caller upholds invariant
+            let py_str = unsafe { pystring_fast_new_maybe_ascii(py, s, ascii_only) };
+            if let Some((_, old_py_str)) = entry.replace((hash, py_str.clone().unbind())) {
+                // micro-optimization: bind the old entry before dropping it so that PyO3 can
+                // fast-path the drop (Bound::drop is faster than Py::drop)
+                drop(old_py_str.into_bound(py));
+            }
             py_str
         };
 
         // we try up to 5 contiguous slots to find a match or an empty slot
         for index in hash_index..hash_index.wrapping_add(5) {
             if let Some(entry) = self.entries.get_mut(index) {
-                if let Some((entry_hash, ref py_str_ob)) = entry {
+                if let Some((entry_hash, py_str_ob)) = entry {
                     // to avoid a string comparison, we first compare the hashes
                     if *entry_hash == hash {
                         // if the hashes match, we compare the strings to be absolutely sure - as a hashmap would do
-                        if py_str_ob.bind(py).to_str().ok() == Some(s) {
+                        if py_str_ob.bind(py) == s {
                             // the strings matched, return the cached string object
                             return py_str_ob.bind(py).to_owned();
                         }
@@ -190,29 +229,40 @@ impl PyStringCache {
     }
 }
 
-pub fn pystring_fast_new<'py>(py: Python<'py>, s: &str, ascii_only: bool) -> Bound<'py, PyString> {
+/// Creatate a new Python `str` from a string slice, with a fast path for ASCII strings
+///
+/// # Safety
+///
+/// `ascii_only` must only be set to `true` if the string is guaranteed to be ASCII only.
+unsafe fn pystring_fast_new_maybe_ascii<'py>(py: Python<'py>, s: &str, ascii_only: bool) -> Bound<'py, PyString> {
     if ascii_only {
+        // SAFETY: caller upholds invariant
         unsafe { pystring_ascii_new(py, s) }
     } else {
-        PyString::new_bound(py, s)
+        PyString::new(py, s)
     }
 }
 
 /// Faster creation of PyString from an ASCII string, inspired by
 /// https://github.com/ijl/orjson/blob/3.10.0/src/str/create.rs#L41
-#[cfg(all(not(PyPy), not(GraalPy)))]
-unsafe fn pystring_ascii_new<'py>(py: Python<'py>, s: &str) -> Bound<'py, PyString> {
-    let ptr = pyo3::ffi::PyUnicode_New(s.len() as isize, 127);
-    // see https://github.com/pydantic/jiter/pull/72#discussion_r1545485907
-    debug_assert_eq!(pyo3::ffi::PyUnicode_KIND(ptr), pyo3::ffi::PyUnicode_1BYTE_KIND);
-    let data_ptr = pyo3::ffi::PyUnicode_DATA(ptr).cast();
-    core::ptr::copy_nonoverlapping(s.as_ptr(), data_ptr, s.len());
-    core::ptr::write(data_ptr.add(s.len()), 0);
-    Bound::from_owned_ptr(py, ptr).downcast_into_unchecked()
-}
+///
+/// # Safety
+///
+/// `s` must be ASCII only
+pub unsafe fn pystring_ascii_new<'py>(py: Python<'py>, s: &str) -> Bound<'py, PyString> {
+    #[cfg(not(any(PyPy, GraalPy, Py_LIMITED_API)))]
+    {
+        let ptr = pyo3::ffi::PyUnicode_New(s.len() as isize, 127);
+        // see https://github.com/pydantic/jiter/pull/72#discussion_r1545485907
+        debug_assert_eq!(pyo3::ffi::PyUnicode_KIND(ptr), pyo3::ffi::PyUnicode_1BYTE_KIND);
+        let data_ptr = pyo3::ffi::PyUnicode_DATA(ptr).cast();
+        core::ptr::copy_nonoverlapping(s.as_ptr(), data_ptr, s.len());
+        core::ptr::write(data_ptr.add(s.len()), 0);
+        Bound::from_owned_ptr(py, ptr).cast_into_unchecked()
+    }
 
-// ffi::PyUnicode_DATA seems to be broken for pypy, hence this, marked as unsafe to avoid warnings
-#[cfg(any(PyPy, GraalPy))]
-unsafe fn pystring_ascii_new<'py>(py: Python<'py>, s: &str) -> Bound<'py, PyString> {
-    PyString::new_bound(py, s)
+    #[cfg(any(PyPy, GraalPy, Py_LIMITED_API))]
+    {
+        PyString::new(py, s)
+    }
 }
