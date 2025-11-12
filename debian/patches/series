@@ -1,2 +1,3 @@
 disable-benches.patch
 num-bigint-tests.patch
+pexip-pyo3-0.26.patch
