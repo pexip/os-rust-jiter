@@ -1,8 +1,7 @@
-use std::borrow::Cow;
 use std::ops::Range;
 use std::str::{from_utf8, from_utf8_unchecked};
 
-use crate::errors::{json_err, json_error, JsonResult};
+use crate::errors::{json_err, json_error, JsonErrorType, JsonResult};
 
 pub type Tape = Vec<u8>;
 
@@ -26,47 +25,86 @@ where
 pub struct StringDecoder;
 
 #[derive(Debug)]
-pub enum StringOutput<'t, 'j>
+pub enum StringOutputType<'t, 'j>
 where
     'j: 't,
 {
-    Tape(&'t str, bool),
-    Data(&'j str, bool),
+    Tape(&'t str),
+    Data(&'j str),
 }
 
-impl From<StringOutput<'_, '_>> for String {
-    fn from(val: StringOutput) -> Self {
-        match val {
-            StringOutput::Tape(s, _) => s.to_owned(),
-            StringOutput::Data(s, _) => s.to_owned(),
+/// This submodule is used to create a safety boundary where the `ascii_only`
+/// flag can be used to carry soundness information about the string.
+mod string_output {
+    use std::borrow::Cow;
+
+    use super::StringOutputType;
+
+    #[derive(Debug)]
+    pub struct StringOutput<'t, 'j>
+    where
+        'j: 't,
+    {
+        data: StringOutputType<'t, 'j>,
+        // SAFETY: this is used as an invariant to determine if the string is ascii only
+        // so this should not be set except when known
+        ascii_only: bool,
+    }
+
+    impl From<StringOutput<'_, '_>> for String {
+        fn from(val: StringOutput) -> Self {
+            match val.data {
+                StringOutputType::Tape(s) | StringOutputType::Data(s) => s.to_owned(),
+            }
+        }
+    }
+
+    impl<'j> From<StringOutput<'_, 'j>> for Cow<'j, str> {
+        fn from(val: StringOutput<'_, 'j>) -> Self {
+            match val.data {
+                StringOutputType::Tape(s) => s.to_owned().into(),
+                StringOutputType::Data(s) => s.into(),
+            }
+        }
+    }
+
+    impl<'t, 'j> StringOutput<'t, 'j>
+    where
+        'j: 't,
+    {
+        /// # Safety
+        ///
+        /// `accii_only` must only be set to true if the string is ascii only
+        pub unsafe fn tape(data: &'t str, ascii_only: bool) -> Self {
+            StringOutput {
+                data: StringOutputType::Tape(data),
+                ascii_only,
+            }
+        }
+
+        /// # Safety
+        ///
+        /// `accii_only` must only be set to true if the string is ascii only
+        pub unsafe fn data(data: &'j str, ascii_only: bool) -> Self {
+            StringOutput {
+                data: StringOutputType::Data(data),
+                ascii_only,
+            }
+        }
+
+        pub fn as_str(&self) -> &'t str {
+            match self.data {
+                StringOutputType::Tape(s) | StringOutputType::Data(s) => s,
+            }
+        }
+
+        pub fn ascii_only(&self) -> bool {
+            self.ascii_only
         }
     }
 }
 
-impl<'t, 'j> From<StringOutput<'t, 'j>> for Cow<'j, str> {
-    fn from(val: StringOutput<'t, 'j>) -> Self {
-        match val {
-            StringOutput::Tape(s, _) => s.to_owned().into(),
-            StringOutput::Data(s, _) => s.into(),
-        }
-    }
-}
-
-impl<'t, 'j> StringOutput<'t, 'j> {
-    pub fn as_str(&self) -> &'t str {
-        match self {
-            Self::Tape(s, _) => s,
-            Self::Data(s, _) => s,
-        }
-    }
-
-    pub fn ascii_only(&self) -> bool {
-        match self {
-            Self::Tape(_, ascii_only) => *ascii_only,
-            Self::Data(_, ascii_only) => *ascii_only,
-        }
-    }
-}
+pub use string_output::StringOutput;
 
 impl<'t, 'j> AbstractStringDecoder<'t, 'j> for StringDecoder
 where
@@ -84,8 +122,8 @@ where
 
         match decode_chunk(data, start, true, allow_partial)? {
             (StringChunk::StringEnd, ascii_only, index) => {
-                let s = to_str(&data[start..index], ascii_only, start)?;
-                Ok((StringOutput::Data(s, ascii_only), index + 1))
+                let s = to_str(&data[start..index], ascii_only, start, allow_partial)?;
+                Ok((unsafe { StringOutput::data(s, ascii_only) }, index + 1))
             }
             (StringChunk::Backslash, ascii_only, index) => {
                 decode_to_tape(data, index, tape, start, ascii_only, allow_partial)
@@ -116,16 +154,28 @@ fn decode_to_tape<'t, 'j>(
                 b'n' => tape.push(b'\n'),
                 b'r' => tape.push(b'\r'),
                 b't' => tape.push(b'\t'),
-                b'u' => {
-                    let (c, new_index) = parse_escape(data, index)?;
-                    ascii_only = false;
-                    index = new_index;
-                    tape.extend_from_slice(c.encode_utf8(&mut [0_u8; 4]).as_bytes());
-                }
+                b'u' => match parse_escape(data, index) {
+                    Ok((c, new_index)) => {
+                        ascii_only = false;
+                        index = new_index;
+                        tape.extend_from_slice(c.encode_utf8(&mut [0_u8; 4]).as_bytes());
+                    }
+                    Err(e) => {
+                        if allow_partial && e.error_type == JsonErrorType::EofWhileParsingString {
+                            let s = to_str(tape, ascii_only, start, allow_partial)?;
+                            return Ok((unsafe { StringOutput::tape(s, ascii_only) }, e.index));
+                        }
+                        return Err(e);
+                    }
+                },
                 _ => return json_err!(InvalidEscape, index),
             }
             index += 1;
         } else {
+            if allow_partial {
+                let s = to_str(tape, ascii_only, start, allow_partial)?;
+                return Ok((unsafe { StringOutput::tape(s, ascii_only) }, index));
+            }
             return json_err!(EofWhileParsingString, index);
         }
 
@@ -133,8 +183,8 @@ fn decode_to_tape<'t, 'j>(
             (StringChunk::StringEnd, ascii_only, new_index) => {
                 tape.extend_from_slice(&data[index..new_index]);
                 index = new_index + 1;
-                let s = to_str(tape, ascii_only, start)?;
-                return Ok((StringOutput::Tape(s, ascii_only), index));
+                let s = to_str(tape, ascii_only, start, allow_partial)?;
+                return Ok((unsafe { StringOutput::tape(s, ascii_only) }, index));
             }
             (StringChunk::Backslash, ascii_only_new, index_new) => {
                 ascii_only = ascii_only_new;
@@ -294,13 +344,24 @@ static CHAR_TYPE: [CharType; 256] = {
     ]
 };
 
-fn to_str(bytes: &[u8], ascii_only: bool, start: usize) -> JsonResult<&str> {
+fn to_str(bytes: &[u8], ascii_only: bool, start: usize, allow_partial: bool) -> JsonResult<&str> {
     if ascii_only {
         // safety: in this case we've already confirmed that all characters are ascii, we can safely
         // transmute from bytes to str
         Ok(unsafe { from_utf8_unchecked(bytes) })
     } else {
-        from_utf8(bytes).map_err(|e| json_error!(InvalidUnicodeCodePoint, start + e.valid_up_to() + 1))
+        match from_utf8(bytes) {
+            Ok(s) => Ok(s),
+            Err(e) if allow_partial && e.error_len().is_none() => {
+                // In partial mode, we handle incomplete (not invalid) UTF-8 sequences
+                // by truncating to the last valid UTF-8 boundary
+                // (`error_len()` is `None` for incomplete sequences)
+                let valid_up_to = e.valid_up_to();
+                // SAFETY: `valid_up_to()` returns the byte index up to which the input is valid UTF-8
+                Ok(unsafe { from_utf8_unchecked(&bytes[..valid_up_to]) })
+            }
+            Err(e) => Err(json_error!(InvalidUnicodeCodePoint, start + e.valid_up_to() + 1)),
+        }
     }
 }
 
@@ -315,7 +376,7 @@ fn parse_escape(data: &[u8], index: usize) -> JsonResult<(char, usize)> {
                 if !(0xDC00..=0xDFFF).contains(&n2) {
                     return json_err!(LoneLeadingSurrogateInHexEscape, index);
                 }
-                let n2 = (((n - 0xD800) as u32) << 10 | (n2 - 0xDC00) as u32) + 0x1_0000;
+                let n2 = ((((n - 0xD800) as u32) << 10) | ((n2 - 0xDC00) as u32)) + 0x1_0000;
 
                 match char::from_u32(n2) {
                     Some(c) => Ok((c, index)),
