@@ -1,3 +1,18 @@
+rust-jiter (0.12.0-2) unstable; urgency=medium
+
+  * Team upload.
+  * Package jiter 0.12.0 from crates.io using debcargo 2.7.11
+  * Upload to unstable.
+
+ -- Peter Michael Green <plugwash@debian.org>  Wed, 19 Nov 2025 21:59:50 +0000
+
+rust-jiter (0.12.0-1) experimental; urgency=medium
+
+  * Team upload.
+  * Package jiter 0.12.0 from crates.io using debcargo 2.7.11
+
+ -- Jelmer Vernooĳ <jelmer@debian.org>  Tue, 11 Nov 2025 17:43:27 +0000
+
 rust-jiter (0.11.1-1+pexip25u2) pexip-trixie; urgency=medium
 
   * Trixie build for product distribution

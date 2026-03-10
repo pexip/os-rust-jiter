@@ -1,24 +1,24 @@
-Test-Command: /usr/share/cargo/bin/cargo-auto-test jiter 0.11.1 --all-targets --all-features
+Test-Command: /usr/share/cargo/bin/cargo-auto-test jiter 0.12.0 --all-targets --all-features
 Features: test-name=rust-jiter:@
-Depends: dh-cargo (>= 31), rustc (>= 1.75), librust-paste-1+default-dev (>= 1.0.7-~~), librust-pyo3-0.26+auto-initialize-dev, librust-pyo3-0.26+default-dev, librust-serde-1+default-dev (>= 1.0.147-~~), librust-serde-json-1+arbitrary-precision-dev (>= 1.0.87-~~), librust-serde-json-1+default-dev (>= 1.0.87-~~), librust-serde-json-1+float-roundtrip-dev (>= 1.0.87-~~), librust-serde-json-1+preserve-order-dev (>= 1.0.87-~~), @
+Depends: dh-cargo (>= 31), rustc (>= 1.75), librust-paste-1+default-dev (>= 1.0.7-~~), librust-pyo3-0.27+auto-initialize-dev, librust-pyo3-0.27+default-dev, librust-serde-1+default-dev (>= 1.0.147-~~), librust-serde-json-1+arbitrary-precision-dev (>= 1.0.87-~~), librust-serde-json-1+default-dev (>= 1.0.87-~~), librust-serde-json-1+float-roundtrip-dev (>= 1.0.87-~~), librust-serde-json-1+preserve-order-dev (>= 1.0.87-~~), @
 Restrictions: allow-stderr, skip-not-installable
 
-Test-Command: /usr/share/cargo/bin/cargo-auto-test jiter 0.11.1 --all-targets
+Test-Command: /usr/share/cargo/bin/cargo-auto-test jiter 0.12.0 --all-targets
 Features: test-name=librust-jiter-dev:default
-Depends: dh-cargo (>= 31), rustc (>= 1.75), librust-paste-1+default-dev (>= 1.0.7-~~), librust-pyo3-0.26+auto-initialize-dev, librust-pyo3-0.26+default-dev, librust-serde-1+default-dev (>= 1.0.147-~~), librust-serde-json-1+arbitrary-precision-dev (>= 1.0.87-~~), librust-serde-json-1+default-dev (>= 1.0.87-~~), librust-serde-json-1+float-roundtrip-dev (>= 1.0.87-~~), librust-serde-json-1+preserve-order-dev (>= 1.0.87-~~), @
+Depends: dh-cargo (>= 31), rustc (>= 1.75), librust-paste-1+default-dev (>= 1.0.7-~~), librust-pyo3-0.27+auto-initialize-dev, librust-pyo3-0.27+default-dev, librust-serde-1+default-dev (>= 1.0.147-~~), librust-serde-json-1+arbitrary-precision-dev (>= 1.0.87-~~), librust-serde-json-1+default-dev (>= 1.0.87-~~), librust-serde-json-1+float-roundtrip-dev (>= 1.0.87-~~), librust-serde-json-1+preserve-order-dev (>= 1.0.87-~~), @
 Restrictions: allow-stderr, skip-not-installable
 
-Test-Command: /usr/share/cargo/bin/cargo-auto-test jiter 0.11.1 --all-targets --no-default-features --features num-bigint
+Test-Command: /usr/share/cargo/bin/cargo-auto-test jiter 0.12.0 --all-targets --no-default-features --features num-bigint
 Features: test-name=librust-jiter-dev:num-bigint
-Depends: dh-cargo (>= 31), rustc (>= 1.75), librust-paste-1+default-dev (>= 1.0.7-~~), librust-pyo3-0.26+auto-initialize-dev, librust-pyo3-0.26+default-dev, librust-serde-1+default-dev (>= 1.0.147-~~), librust-serde-json-1+arbitrary-precision-dev (>= 1.0.87-~~), librust-serde-json-1+default-dev (>= 1.0.87-~~), librust-serde-json-1+float-roundtrip-dev (>= 1.0.87-~~), librust-serde-json-1+preserve-order-dev (>= 1.0.87-~~), @
+Depends: dh-cargo (>= 31), rustc (>= 1.75), librust-paste-1+default-dev (>= 1.0.7-~~), librust-pyo3-0.27+auto-initialize-dev, librust-pyo3-0.27+default-dev, librust-serde-1+default-dev (>= 1.0.147-~~), librust-serde-json-1+arbitrary-precision-dev (>= 1.0.87-~~), librust-serde-json-1+default-dev (>= 1.0.87-~~), librust-serde-json-1+float-roundtrip-dev (>= 1.0.87-~~), librust-serde-json-1+preserve-order-dev (>= 1.0.87-~~), @
 Restrictions: allow-stderr, skip-not-installable
 
-Test-Command: /usr/share/cargo/bin/cargo-auto-test jiter 0.11.1 --all-targets --no-default-features --features python
+Test-Command: /usr/share/cargo/bin/cargo-auto-test jiter 0.12.0 --all-targets --no-default-features --features python
 Features: test-name=librust-jiter-dev:python
-Depends: dh-cargo (>= 31), rustc (>= 1.75), librust-paste-1+default-dev (>= 1.0.7-~~), librust-pyo3-0.26+auto-initialize-dev, librust-pyo3-0.26+default-dev, librust-serde-1+default-dev (>= 1.0.147-~~), librust-serde-json-1+arbitrary-precision-dev (>= 1.0.87-~~), librust-serde-json-1+default-dev (>= 1.0.87-~~), librust-serde-json-1+float-roundtrip-dev (>= 1.0.87-~~), librust-serde-json-1+preserve-order-dev (>= 1.0.87-~~), @
+Depends: dh-cargo (>= 31), rustc (>= 1.75), librust-paste-1+default-dev (>= 1.0.7-~~), librust-pyo3-0.27+auto-initialize-dev, librust-pyo3-0.27+default-dev, librust-serde-1+default-dev (>= 1.0.147-~~), librust-serde-json-1+arbitrary-precision-dev (>= 1.0.87-~~), librust-serde-json-1+default-dev (>= 1.0.87-~~), librust-serde-json-1+float-roundtrip-dev (>= 1.0.87-~~), librust-serde-json-1+preserve-order-dev (>= 1.0.87-~~), @
 Restrictions: allow-stderr, skip-not-installable
 
-Test-Command: /usr/share/cargo/bin/cargo-auto-test jiter 0.11.1 --all-targets --no-default-features
+Test-Command: /usr/share/cargo/bin/cargo-auto-test jiter 0.12.0 --all-targets --no-default-features
 Features: test-name=librust-jiter-dev:
-Depends: dh-cargo (>= 31), rustc (>= 1.75), librust-paste-1+default-dev (>= 1.0.7-~~), librust-pyo3-0.26+auto-initialize-dev, librust-pyo3-0.26+default-dev, librust-serde-1+default-dev (>= 1.0.147-~~), librust-serde-json-1+arbitrary-precision-dev (>= 1.0.87-~~), librust-serde-json-1+default-dev (>= 1.0.87-~~), librust-serde-json-1+float-roundtrip-dev (>= 1.0.87-~~), librust-serde-json-1+preserve-order-dev (>= 1.0.87-~~), @
+Depends: dh-cargo (>= 31), rustc (>= 1.75), librust-paste-1+default-dev (>= 1.0.7-~~), librust-pyo3-0.27+auto-initialize-dev, librust-pyo3-0.27+default-dev, librust-serde-1+default-dev (>= 1.0.147-~~), librust-serde-json-1+arbitrary-precision-dev (>= 1.0.87-~~), librust-serde-json-1+default-dev (>= 1.0.87-~~), librust-serde-json-1+float-roundtrip-dev (>= 1.0.87-~~), librust-serde-json-1+preserve-order-dev (>= 1.0.87-~~), @
 Restrictions: allow-stderr, skip-not-installable
