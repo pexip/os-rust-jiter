@@ -9,8 +9,8 @@ License: MIT
 
 Files: debian/*
 Copyright:
- 2024 Debian Rust Maintainers <pkg-rust-maintainers@alioth-lists.debian.net>
- 2024 Colin Watson <cjwatson@debian.org>
+ 2024-2026 Debian Rust Maintainers <pkg-rust-maintainers@alioth-lists.debian.net>
+ 2024-2026 Colin Watson <cjwatson@debian.org>
 License: MIT
 
 License: MIT

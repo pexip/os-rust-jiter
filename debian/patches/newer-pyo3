@@ -1,0 +1,31 @@
+Index: jiter/Cargo.toml
+===================================================================
+--- jiter.orig/Cargo.toml
++++ jiter/Cargo.toml
+@@ -82,7 +82,7 @@ optional = true
+ version = "0.2.16"
+ 
+ [dependencies.pyo3]
+-version = "0.27"
++version = ">=0.27,<0.29"
+ optional = true
+ 
+ [dependencies.smallvec]
+@@ -92,7 +92,7 @@ version = "1.11.0"
+ version = "1.0.7"
+ 
+ [dev-dependencies.pyo3]
+-version = "0.27"
++version = ">=0.27,<0.29"
+ features = ["auto-initialize"]
+ 
+ [dev-dependencies.serde]
+@@ -107,7 +107,7 @@ features = [
+ ]
+ 
+ [build-dependencies.pyo3-build-config]
+-version = "0.27"
++version = ">=0.27,<0.29"
+ optional = true
+ 
+ [lints.clippy]

@@ -1,3 +1,9 @@
+rust-jiter (0.12.0-3) unstable; urgency=medium
+
+  * Add patch newer-pyo3 to allow building with pyo3 0.28.
+
+ -- Jelmer Vernooĳ <jelmer@debian.org>  Tue, 17 Mar 2026 11:18:21 +0000
+
 rust-jiter (0.12.0-2) unstable; urgency=medium
 
   * Team upload.
