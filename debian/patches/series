@@ -1,2 +1,3 @@
 disable-benches.patch
+newer-pyo3
 pexip-downgrade-lexical-parse-float.patch
