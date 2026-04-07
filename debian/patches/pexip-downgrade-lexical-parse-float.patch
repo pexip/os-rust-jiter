@@ -1,3 +1,5 @@
+Relax build dependencies to work with those in trixie
+
 --- a/Cargo.toml
 +++ b/Cargo.toml
 @@ -71,7 +71,7 @@
